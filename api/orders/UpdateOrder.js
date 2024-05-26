@@ -1,3 +1,4 @@
+const { redisClient } = require('../../redisClient');
 const Router = require('express');
 const router = Router();
 const { OrderValidationSchema } = require('../../validationSchemas/OrderValidationSchema');
@@ -106,6 +107,8 @@ router.put('/updateOrder/:id', verifyToken, async (req, res) => {
     if (!updatedOrder) {
       return res.status(404).json('Order not found');
     }
+
+    await redisClient.del('orders:list')
 
     return res.status(200).send(`Order with id ${req.params.id} was updated successfully`);
 

@@ -1,7 +1,10 @@
+const { redisClient } = require('../../redisClient');
+// const async = require('async');
 const Router = require('express');
 const router = Router();
 const { verifyToken } = require('./utils');
 const { Orders } = require('../../models/Orders.Schema');
+
 /**
  * @swagger
  * /getOrders/{id}:
@@ -109,16 +112,22 @@ const { Orders } = require('../../models/Orders.Schema');
 
 
 router.get('/getOrders/:id', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  const redisKey = `order:${id}`;
   try {
-    const { id } = req.params;
-    const order = await Orders.findById(id);
+    const cacheResult = await redisClient.get(redisKey);
+    if (cacheResult) {
+      return res.status(200).send(cacheResult);
+    } else {
+      const order = await Orders.findById(id);
 
-    if (!order) {
-      return res.status(404).send(`The order with id ${id} doesn't exist`);
+      if (!order) {
+        return res.status(404).send(`The order with id ${id} doesn't exist`);
+      }
+
+      await redisClient.setEx(redisKey, 3600, JSON.stringify(order));
+      return res.status(200).send(order);
     }
-
-    return res.status(200).send(order);
-
   } catch (error) {
     res.status(500).send(`Something went wrong while fetching order ${error}`)
   }

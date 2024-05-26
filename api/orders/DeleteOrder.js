@@ -1,3 +1,4 @@
+const { redisClient } = require('../../redisClient');
 const Router = require('express');
 const router = Router();
 const { verifyToken } = require('./utils');
@@ -58,6 +59,8 @@ router.delete('/deleteOrder/:id', verifyToken, async (req, res) => {
     if (!deletedOrder) {
       return res.status(404).send(`Order with id ${id} wasn't found`);
     }
+
+    await redisClient.del("orders:list");
 
     return res.status(200).send(`Order with id ${id} was deleted successfully`);
 

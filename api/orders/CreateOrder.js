@@ -1,3 +1,4 @@
+const { redisClient } = require('../../redisClient')
 const Router = require('express');
 const router = Router();
 const { Orders } = require('../../models/Orders.Schema');
@@ -86,8 +87,11 @@ router.post('/createOrder', verifyToken, async (req, res) => {
       return res.status(404).send(error.details[0].message);
     }
 
+
     const order = new Orders({ price, additionalMessage, itemsList, customerId: req.user.userId });
     await order.save();
+
+    await redisClient.del('orders:list')
 
     return res.status(200).send('Order was created successfully');
   } catch (error) {
