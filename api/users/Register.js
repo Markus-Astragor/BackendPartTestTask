@@ -77,7 +77,7 @@ router.post('/register', async (req, res) => {
     const newUsername = username.trim();
 
     const { error } = RegisterValidationSchema.validate({ username: newUsername, password });
-    const check = await Users.findOne({ username });
+    const check = await Users.findOne({ newUsername });
 
     if (error) {
       return res.status(400).send(error.details[0].message);
@@ -89,7 +89,7 @@ router.post('/register', async (req, res) => {
 
     else {
       const hashedPassword = await bcrypt.hash(password, saltRounds);
-      const doc = new Users({ username: username, password: hashedPassword });
+      const doc = new Users({ username: newUsername, password: hashedPassword });
       await doc.save();
 
       const token = jwt.sign({ userId: doc._id }, secretKey, { expiresIn: `${expiredTime}h` })
