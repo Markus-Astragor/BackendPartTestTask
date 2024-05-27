@@ -8,7 +8,7 @@ const { RegisterValidationSchema } = require('../../validationSchemas/RegisterVa
 const saltRounds = 10;
 const secretKey = process.env.SECRET_KEY;
 const expiredTime = process.env.EXPIRED_TIME;
-
+const log = require('../../logger');
 
 /**
  * @swagger
@@ -80,10 +80,12 @@ router.post('/register', async (req, res) => {
     const check = await Users.findOne({ newUsername });
 
     if (error) {
+      log.error(`Register: validation error: ${error.details[0].message}`);
       return res.status(400).send(error.details[0].message);
     }
 
     if (check) {
+      log.error(`Register: account with ${username} already exists`);
       return res.status(403).send('Account with this username already exists');
     }
 
@@ -93,10 +95,12 @@ router.post('/register', async (req, res) => {
       await doc.save();
 
       const token = jwt.sign({ userId: doc._id }, secretKey, { expiresIn: `${expiredTime}h` })
+      log.info(`Register: user successfully registered`);
       res.status(200).json({ token })
     }
 
   } catch (error) {
+    log.error(`Register: problem while registering`);
     res.status(500).send(`An error occurred while registering the user ${error}`);
   }
 })

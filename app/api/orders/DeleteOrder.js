@@ -3,6 +3,7 @@ const Router = require('express');
 const router = Router();
 const { verifyToken } = require('./utils');
 const { Orders } = require('../../models/Orders.Schema');
+const log = require('../../logger');
 
 /**
  * @swagger
@@ -57,14 +58,18 @@ router.delete('/deleteOrder/:id', verifyToken, async (req, res) => {
     const deletedOrder = await Orders.findByIdAndDelete(id);
 
     if (!deletedOrder) {
+      log.error(`DeleteOrder: Error while deleting order ${id}`);
       return res.status(404).send(`Order with id ${id} wasn't found`);
     }
 
+    log.info('DeleteOrder: removing orders from cache')
     await redisClient.del("orders:list");
 
+    log.info(`DeleteOrder: Order with id ${id} deleted successfullly`);
     return res.status(200).send(`Order with id ${id} was deleted successfully`);
 
   } catch (error) {
+    log.error(`DeleteOrder: Error while deleting order`);
     res.status(500).send(`Something went wrong while deleting: ${error.message}`);
   }
 });

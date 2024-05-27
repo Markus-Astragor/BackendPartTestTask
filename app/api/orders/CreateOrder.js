@@ -4,6 +4,7 @@ const router = Router();
 const { Orders } = require('../../models/Orders.Schema');
 const { OrderValidationSchema } = require('../../validationSchemas/OrderValidationSchema');
 const { verifyToken } = require('./utils');
+const log = require('../../logger');
 
 /**
  * @swagger
@@ -84,6 +85,7 @@ router.post('/createOrder', verifyToken, async (req, res) => {
     const { error } = OrderValidationSchema.validate(req.body);
 
     if (error) {
+      log.error(`CreateOrder: This is an error connected to validation: ${error.details[0].message}`)
       return res.status(404).send(error.details[0].message);
     }
 
@@ -91,10 +93,13 @@ router.post('/createOrder', verifyToken, async (req, res) => {
     const order = new Orders({ price, additionalMessage, itemsList, customerId: req.user.userId });
     await order.save();
 
+    log.info('CreateOrder: Orders were deleted from cache');
     await redisClient.del('orders:list')
 
+    log.info(`CreateOrder: Order was created successfully`);
     return res.status(200).send('Order was created successfully');
   } catch (error) {
+    log.error(`CreateOrder: Error while creating order`);
     return res.status(500).send(`An error occurred while creating the order ${error}`);
   }
 });

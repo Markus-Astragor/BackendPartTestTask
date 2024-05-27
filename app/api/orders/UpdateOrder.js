@@ -4,6 +4,7 @@ const router = Router();
 const { OrderValidationSchema } = require('../../validationSchemas/OrderValidationSchema');
 const { verifyToken } = require('./utils');
 const { Orders } = require('../../models/Orders.Schema');
+const log = require('../../logger');
 
 /**
  * @swagger
@@ -95,6 +96,7 @@ router.put('/updateOrder/:id', verifyToken, async (req, res) => {
     const { error } = OrderValidationSchema.validate(req.body);
 
     if (error) {
+      log.error(`UpdateOrder: Error connected to validation: ${error.details[0].message}`);
       return res.status(404).send(error.details[0].message);
     }
 
@@ -105,14 +107,18 @@ router.put('/updateOrder/:id', verifyToken, async (req, res) => {
     );
 
     if (!updatedOrder) {
+      log.error(`UpdateOrder: Order not found`);
       return res.status(404).json('Order not found');
     }
 
+    log.info('UpdateOrder: Orders were removed from redis cache');
     await redisClient.del('orders:list')
 
+    log.info(`UpdateOrder: Order with id ${req.params.id} was updated successfully`);
     return res.status(200).send(`Order with id ${req.params.id} was updated successfully`);
 
   } catch (error) {
+    log.error(`UpdateOrder: Problem with updating an order`);
     return res.status(500).send(`Something went wrong while updating order ${error}`);
   }
 })

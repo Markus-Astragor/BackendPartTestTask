@@ -3,6 +3,7 @@ const Router = require('express');
 const router = Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const log = require('../../logger');
 const secretKey = process.env.SECRET_KEY;
 const expiredTime = process.env.EXPIRED_TIME;
 
@@ -63,18 +64,22 @@ router.post('/login', async (req, res) => {
     const user = await Users.findOne({ username: username });
 
     if (!user) {
+      log.error(`Login: The user with such credentials was not found in db`);
       return res.status(404).send('The user with such credentials wasn`t found');
     }
 
     const matchedPassword = await bcrypt.compare(password, user.password);
 
     if (!matchedPassword) {
+      log.error(`Login: The user entered wrong credentials`);
       return res.status(404).send('Please check username or password');
     }
 
     const token = jwt.sign({ userId: user._id, username }, secretKey, { expiresIn: `${expiredTime}h` });
+    log.error(`Login: User ${username} received token`);
     return res.status(200).json({ token, username });
   } catch (error) {
+    log.error(`Login: Internal server error`);
     return res.status(500).send(`Internal Server Error: ${error}`);
   }
 });

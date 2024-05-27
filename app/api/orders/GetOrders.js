@@ -3,6 +3,7 @@ const Router = require('express');
 const router = Router();
 const { Orders } = require('../../models/Orders.Schema');
 const { verifyToken } = require('./utils');
+const log = require('../../logger');
 
 /**
  * @swagger
@@ -104,21 +105,25 @@ router.get('/getOrders', verifyToken, async (req, res) => {
   try {
     const cacheResult = await redisClient.get("orders:list");
     if (cacheResult) {
-      console.log("get from cache");
+      log.info(`GetOrders: Getting orders from redis cache`);
       return res.status(200).send(cacheResult);
     } else {
       const orders = await Orders.find();
 
       if (orders.length === 0) {
+        log.info(`GetOrders: There are not any orders yet in database`);
         return res.status(200).send('There are not any orders yet');
       }
 
+      log.info(`GetOrders: orders were set to redis`);
       redisClient.setEx("orders:list", 3600, JSON.stringify(orders));
 
+      log.info(`GetOrders: Here are all orders sent to client`);
       return res.status(200).json(orders);
     }
 
   } catch (error) {
+    log.error(`GetOrders: Problem with getting orders`);
     return res.status(500).send(`Something went wrong while fetching orders ${error}`);
   }
 })
